@@ -1,0 +1,1035 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.5">
+    <title>SWAP自动换盘系统</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <style>
+        /* ----- 黄黑配色 · 文字纯色无渐变 ----- */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        }
+        body {
+            background: #0a0a0a;
+            color: #e8e6e0;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+        #app_wrapper {
+            max-width: 1280px;
+            width: 100%;
+            background: rgba(16, 16, 16, 0.92);
+            backdrop-filter: blur(4px);
+            -webkit-backdrop-filter: blur(4px);
+            border-radius: 48px;
+            padding: 28px 36px 36px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.85), 0 0 0 1px rgba(255, 200, 0, 0.15);
+            border: 1px solid rgba(255, 200, 0, 0.08);
+        }
+        #app_header {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 30px;
+            padding-bottom: 18px;
+            border-bottom: 1px solid rgba(255, 200, 0, 0.2);
+        }
+        .hero-brand {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+        .logo-icon {
+            width: 52px;
+            height: 52px;
+            background: linear-gradient(145deg, #1a1a0a, #0d0d00);
+            border-radius: 18px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 28px;
+            color: #f5c900;
+            box-shadow: 0 0 0 1px #f5c90033, 0 8px 16px rgba(0,0,0,0.7);
+            border: 1px solid #f5c90018;
+        }
+        .hero-title h1 {
+            font-size: 28px;
+            font-weight: 600;
+            letter-spacing: 0.02em;
+            color: #f5c900;
+            margin-bottom: 2px;
+        }
+        .hero-title .sub {
+            font-size: 14px;
+            color: #9a9a8a;
+            letter-spacing: 0.4px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        .hero-title .sub i {
+            color: #f5c900;
+            font-size: 12px;
+        }
+        .status-pulse {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            background: #141410;
+            padding: 6px 14px 6px 10px;
+            border-radius: 40px;
+            border: 1px solid #3a3a2a;
+            font-size: 13px;
+            color: #c0bdaa;
+        }
+        .pulse-dot {
+            display: inline-block;
+            width: 10px;
+            height: 10px;
+            background: #f5c900;
+            border-radius: 50%;
+            box-shadow: 0 0 12px #f5c900aa;
+            animation: pulse-glow 1.8s infinite;
+        }
+        @keyframes pulse-glow {
+            0% { opacity: 0.6; transform: scale(0.95); }
+            50% { opacity: 1; transform: scale(1.15); box-shadow: 0 0 20px #f5c900; }
+            100% { opacity: 0.6; transform: scale(0.95); }
+        }
+        .machine-selector {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            background: #141410;
+            padding: 4px 12px 4px 16px;
+            border-radius: 60px;
+            border: 1px solid #3a3a2a;
+        }
+        .machine-selector label {
+            font-size: 14px;
+            font-weight: 400;
+            color: #c0bdaa;
+        }
+        .machine-selector select {
+            background: transparent;
+            border: none;
+            color: #f0e8d0;
+            font-size: 18px;
+            font-weight: 500;
+            padding: 8px 4px 8px 0;
+            outline: none;
+            cursor: pointer;
+            letter-spacing: 0.3px;
+        }
+        .machine-selector select option {
+            background: #1a1a10;
+            color: #e8ddc0;
+        }
+        #statistics {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 24px 40px;
+            margin-top: 16px;
+            background: #11110c;
+            padding: 14px 24px;
+            border-radius: 32px;
+            border: 1px solid #2a2a1a;
+        }
+        #statistics.hidden { display: none; }
+        .stat-block {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .stat-block i {
+            color: #f5c900;
+            font-size: 18px;
+            width: 28px;
+        }
+        .stat-block .label {
+            font-size: 13px;
+            color: #9a9a8a;
+            margin-right: 4px;
+        }
+        .stat-block .value {
+            font-weight: 600;
+            font-size: 18px;
+            color: #f0e8d0;
+            letter-spacing: 0.3px;
+        }
+        #filament_total {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px 18px;
+        }
+        #filament_total div {
+            background: #12120c;
+            padding: 6px 14px 6px 12px;
+            border-radius: 30px;
+            border: 1px solid #2a2a1a;
+            font-size: 13px;
+            color: #d0cdb8;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        #filament_total div::before {
+            content: "●";
+            color: #f5c900;
+            font-size: 12px;
+            margin-right: 4px;
+        }
+        #drop_zones_wrapper {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 20px;
+            margin: 20px 0 28px;
+        }
+        #drop_zone, #drop_zone_instant {
+            flex: 1 1 220px;
+            min-height: 130px;
+            background: #12120c;
+            border: 2px dashed #3a3a2a;
+            border-radius: 28px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            padding: 18px 12px;
+            transition: all 0.25s ease;
+            cursor: pointer;
+            color: #a0a090;
+            font-size: 15px;
+            box-shadow: inset 0 0 20px rgba(0,0,0,0.6);
+        }
+        #drop_zone i, #drop_zone_instant i {
+            font-style: normal;
+            font-size: 13px;
+            color: #7a7a6a;
+            margin-top: 4px;
+        }
+        #drop_zone:hover, #drop_zone_instant:hover {
+            border-color: #f5c900;
+            background: #1a1a12;
+            box-shadow: 0 0 30px #f5c90018;
+            transform: scale(1.01);
+        }
+        .drop_zone_active {
+            border-color: #f5c900 !important;
+            background: #222218 !important;
+        }
+        #drop_zone_instant {
+            border-style: solid;
+            border-color: #4a4a32;
+            background: #14140e;
+        }
+        #drop_zone_instant i {
+            color: #9a9a7a;
+        }
+        /* ----- 大图预览卡片 ----- */
+        #playlist_ol {
+            list-style: none;
+            padding: 0;
+            margin: 20px 0 30px;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+        .list_item {
+            background: #14140e;
+            border-radius: 28px;
+            padding: 20px 24px;
+            border: 1px solid #2a2a1a;
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 18px 24px;
+            transition: 0.2s;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.6);
+        }
+        .list_item:hover {
+            border-color: #f5c90066;
+            background: #1c1c14;
+        }
+        .list_item.inactive {
+            opacity: 0.35;
+            filter: grayscale(0.8);
+        }
+        .p_icon {
+            width: 96px;
+            height: 96px;
+            min-width: 96px;
+            min-height: 96px;
+            object-fit: contain;
+            border-radius: 16px;
+            background: #0e0e08;
+            border: 2px solid #3a3a2a;
+            padding: 4px;
+            transition: 0.2s;
+        }
+        .list_item:hover .p_icon {
+            border-color: #f5c90066;
+            box-shadow: 0 0 24px #f5c90018;
+        }
+        .p_title {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: baseline;
+            gap: 8px 14px;
+            flex: 2 1 200px;
+        }
+        .f_id {
+            font-size: 14px;
+            color: #9a9a7a;
+            font-weight: 500;
+            background: #1a1a10;
+            padding: 0 10px;
+            border-radius: 30px;
+            border: 1px solid #3a3a2a;
+        }
+        .f_name {
+            font-weight: 500;
+            color: #e8e0cc;
+            font-size: 16px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            max-width: 200px;
+        }
+        .p_name {
+            background: #2a2a1a;
+            padding: 2px 14px;
+            border-radius: 40px;
+            font-size: 14px;
+            color: #d0c8b0;
+        }
+        .p_info {
+            display: flex;
+            align-items: center;
+            gap: 8px 14px;
+            flex-wrap: wrap;
+            flex: 1 1 160px;
+        }
+        .p_time {
+            background: #12120c;
+            padding: 2px 16px;
+            border-radius: 30px;
+            font-feature-settings: "tnum";
+            font-size: 14px;
+            border: 1px solid #2a2a1a;
+        }
+        .p_rep {
+            background: #12120c;
+            border: 1px solid #3a3a2a;
+            color: #f0e8d0;
+            border-radius: 40px;
+            width: 64px;
+            padding: 6px 8px;
+            text-align: center;
+            font-weight: 600;
+            font-size: 16px;
+        }
+        .p_rep:focus {
+            border-color: #f5c900;
+            outline: none;
+            box-shadow: 0 0 16px #f5c90030;
+        }
+        .p_filaments {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px 10px;
+            margin-left: auto;
+        }
+        .p_filament {
+            background: #14140e;
+            padding: 4px 12px 4px 8px;
+            border-radius: 40px;
+            border: 1px solid #2a2a1a;
+            font-size: 12px;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            color: #d0cdb8;
+        }
+        .f_color {
+            width: 16px;
+            height: 16px;
+            border-radius: 20px;
+            border: 1px solid #4a4a3a;
+        }
+        #settings_wrapper {
+            margin: 24px 0 20px;
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 18px 30px;
+            background: #11110c;
+            padding: 16px 24px;
+            border-radius: 40px;
+            border: 1px solid #2a2a1a;
+        }
+        #settings_wrapper label {
+            color: #c0bdaa;
+            font-size: 14px;
+        }
+        #settings_wrapper input {
+            background: #0e0e08;
+            border: 1px solid #3a3a2a;
+            color: #f0e8d0;
+            border-radius: 30px;
+            padding: 8px 14px;
+            font-size: 15px;
+            width: auto;
+        }
+        #settings_wrapper input:focus {
+            border-color: #f5c900;
+            outline: none;
+        }
+        #file_name { min-width: 140px; }
+        #loops {
+            width: 76px;
+            text-align: center;
+        }
+        #action_buttons {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            justify-content: flex-end;
+            gap: 12px 16px;
+            margin-top: 12px;
+        }
+        #action_buttons.hidden { display: none; }
+        .btn {
+            background: transparent;
+            border: 1px solid #4a4a3a;
+            color: #d0cdb8;
+            padding: 10px 24px;
+            border-radius: 60px;
+            font-weight: 500;
+            font-size: 15px;
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            transition: 0.2s;
+            cursor: pointer;
+            backdrop-filter: blur(4px);
+            background: rgba(16, 16, 10, 0.7);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.4);
+        }
+        .btn i { font-size: 16px; }
+        .btn-primary {
+            background: linear-gradient(145deg, #3a3a1a, #1a1a08);
+            border-color: #f5c900;
+            color: #f5edc0;
+            box-shadow: 0 0 20px #f5c90020;
+        }
+        .btn-primary:hover {
+            background: linear-gradient(145deg, #5a5a2a, #2a2a10);
+            transform: translateY(-2px);
+            box-shadow: 0 8px 24px #f5c90040;
+            border-color: #f5d000;
+        }
+        .btn-secondary {
+            border-color: #4a4a3a;
+            background: #14140e;
+        }
+        .btn-secondary:hover {
+            background: #24241a;
+            border-color: #7a7a5a;
+        }
+        #progress_bar {
+            width: 120px;
+            height: 6px;
+            background: #1a1a10;
+            border-radius: 20px;
+            overflow: hidden;
+            margin-left: 8px;
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+        #progress_scale {
+            height: 100%;
+            width: 0%;
+            background: linear-gradient(90deg, #f5c900, #f5e56b);
+            border-radius: 20px;
+            box-shadow: 0 0 16px #f5c900;
+        }
+        .hidden { display: none !important; }
+        .tool_info { margin-left: 8px; color: #9a9a7a; cursor: help; }
+        .tool_info summary { font-size: 14px; }
+        .tool_info p { font-size: 13px; color: #b0b098; margin: 2px 0; }
+        @media (max-width: 800px) {
+            #app_wrapper { padding: 20px; }
+            .hero-title h1 { font-size: 22px; }
+            .list_item { flex-direction: column; align-items: stretch; }
+            .p_filaments { margin-left: 0; }
+            .p_icon {
+                width: 72px;
+                height: 72px;
+                min-width: 72px;
+                min-height: 72px;
+            }
+        }
+        @media (max-width: 500px) {
+            #app_header { flex-direction: column; align-items: start; gap: 12px; }
+            .machine-selector { width: 100%; justify-content: space-between; }
+            .p_icon {
+                width: 60px;
+                height: 60px;
+                min-width: 60px;
+                min-height: 60px;
+            }
+        }
+    </style>
+</head>
+<body>
+<div id="app_wrapper">
+    <header id="app_header">
+        <div class="hero-brand">
+            <img src="./自动换盘_files/logo.png" alt="Logo" style="height:60px; width:auto; display:block;">
+</a>
+            <div class="hero-title">
+                <h1><span style="font-weight: 700;">SWAP A1/A2L</span> 自动换盘系统</h1>
+                <div class="sub">
+                    <span><i class="fas fa-microchip"></i> 固件就绪</span>
+                    <span><i class="fas fa-arrows-rotate"></i> 队列引擎</span>
+                </div>
+            </div>
+        </div>
+        <div style="display: flex; align-items: center; gap: 16px; flex-wrap: wrap;">
+            <div class="machine-selector">
+                <label for="type"><i class="fas fa-print"></i> 机型</label>
+                <select id="type">
+                    <option value="A2L">A2L</option>
+                    <option value="a1">A1</option>
+                </select>
+            </div>
+            <div class="status-pulse">
+                <span class="pulse-dot"></span> 系统在线
+            </div>
+        </div>
+    </header>
+
+    <div id="statistics" class="hidden">
+        <div class="stat-block"><i class="fas fa-clock"></i><span class="label">耗时</span><span class="value" id="total_time">0m 0s</span></div>
+        <div class="stat-block"><i class="fas fa-layer-group"></i><span class="label">盘数</span><span class="value" id="used_plates">0</span></div>
+        <div class="stat-block" style="flex:1; min-width:160px;">
+            <i class="fas fa-palette"></i>
+            <span class="label">耗材</span>
+            <div id="filament_total" style="display:flex; gap:6px; flex-wrap:wrap;"></div>
+        </div>
+    </div>
+
+    <div id="app_content">
+        <div id="drop_zones_wrapper">
+            <div id="drop_zone"><i class="fas fa-cloud-upload-alt" style="font-size:28px; display:block; margin-bottom:6px;"></i> 拖放文件至此 <i>或点击上传</i></div>
+            <div id="spacer_cell" style="display:none;"></div>
+            <div id="drop_zone_instant"><i class="fas fa-bolt" style="font-size:24px; display:block; margin-bottom:6px;"></i> 即时换盘 <i>拖放直接导出</i></div>
+        </div>
+
+        <ol id="playlist_ol"></ol>
+
+        <div id="settings_wrapper">
+            <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+                <label for="file_name"><i class="fas fa-file-signature"></i> 文件名</label>
+                <input id="file_name" type="text" placeholder="output" value="" onclick="custom_file_name(this)" onkeyup="adj_field_length(this,5,26)">
+                <span style="color:#7a7a6a;">.swap.3mf</span>
+            </div>
+            <div style="display:flex; align-items:center; gap:6px; flex-wrap:wrap;">
+                <label for="loops"><i class="fas fa-repeat"></i> 重复</label>
+                <input id="loops" type="number" min="1" max="9999" value="1" onchange="update_statistics();">
+                <details class="tool_info"><summary>ⓘ</summary><p>队列重复次数<br>例: A×3, B×1, 重复2 → A A A B A A A B</p></details>
+            </div>
+            <div id="action_buttons" class="hidden" style="margin-left:auto;">
+                <button class="btn btn-secondary" onclick="location.reload()"><i class="fas fa-undo-alt"></i> 重置</button>
+                <button class="btn btn-primary" onclick="export_3mf()"><i class="fas fa-file-export"></i> 生成最终文件</button>
+                <div id="progress_bar"><div id="progress_scale" style="width:0%;"></div></div>
+            </div>
+        </div>
+    </div>
+
+    <input type="file" id="file" class="hidden" accept=".3mf,.gcode" multiple>
+    <li id="list_item_prototype" class="list_item" style="display:none;">
+        <div class="p_title">
+            <span class="f_id">[id]</span>
+            <span class="f_name single-line">file.3mf</span>
+            <span class="p_name">plate</span>
+        </div>
+        <img class="p_icon" src="" alt="thumbnail">
+        <div class="p_info">
+            <span class="p_time">0m</span>
+            <input class="p_rep" type="number" min="0" max="9999" value="1" onchange="update_statistics();">
+        </div>
+        <div class="p_filaments">
+            <div class="p_filament_prototype" style="display:none;">
+                <div class="f_color"></div>
+                <span>槽</span><span class="f_slot"></span>
+                <span class="f_type"></span>
+                <span class="f_used_g"></span>g
+                <span class="f_used_m"></span>m
+            </div>
+        </div>
+    </li>
+    <div id="err" style="color:#f07a3a; margin:8px 0;"></div>
+    <div style="margin-top:24px; font-size:13px; color:#6a6a5a; text-align:center; border-top:1px solid #2a2a1a; padding-top:16px;">
+        <i class="fas fa-cube"></i> 引擎 v3.10 · <a href="https://m.tb.cn/h.8qGZWCV?tk=FhH2T6wNXAj" style="color:#b0a070; text-decoration:none;">科技馆的小鸦</a>
+    </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/spark-md5/3.0.2/spark-md5.min.js"></script>
+<script>
+    // ===== 完整功能 =====
+    var fileInput, li_prototype, playlist_ol, p_scale, ams_max_file_id, my_files = [];
+    var parser = new DOMParser();
+    const swap_gcode_A2L = `;=====3.10.更新更换打印版========= \n; swap swapmod - stl A2L start / v 01-00 20260725\n;plate-swap start\nG28 X Y\nG0 X-40 F8000\nG0 Y305 F8000\nG0 Y333 F1500\nG0 Z-20 F10000\nG0 Y300 F500\nG0 Z320 F10000\nG0 Y-1 F500\nG0 Y50 F1000\nG0 Y290 F5000\nG0 Y265 F1000\nG0 Y170 F5000\nG0 Y10 Z20 F1000\nG0 Y334 F3000\nG0 Y-1 F3000\nG0 Y25 F5000\nG0 Y-1 F5000\nG0 Y20 F300\n\nG0 Y-1 F1000\nG0 Y20 F1000\n\nG0 Y305 F8000\nG0 Y333 F500\nG0 Y120 F8000\n\n;plate-swap end\n;=====换盘结束========= `;
+    const swap_gcode_a1 = `;=====2.24更新更换打印版=========\n;swap-now prepare\n\nM104 S0; Set Hot-end to 0C (off)\nM140 S0; Set bed to 0C (off)\nM17 Z0.3 ; lower the z-motor current\nG90; \n\n\nG380 S2 Z263 F1200\nG91\nG380 S3 Z-15 F1200\nG90\nG28 XY\n\nM17 Z0.6 ; reset motor current to default\n\n\n;swap-sequence 20251101\n\nG0 Y260 F2000; \nG0 Y265 F500; \nG0 X-33 F2000; \nG0 Z-12 F2000; \nG0 Y250 F2000; \nG0 Y240 Z250 F2000; \nG0 Y100 F2000; \n\nG0 Y0 F2000; \nG0 Y15 F2000; \nG0 Y33 F500; \nG0 Y260 F2000; \nG0 Y210 F2000; \n\nG0 Y10 F2000; \n\nG0 Y245 F2000; \nG0 Y265 F500; \nG0 Y-2 F2000; \nG0 Y15 F2000; \nG0 Y-2 F2000; \nG0 Y20 F2000; \nG0 Y100 F2000; \n\nM104 S0; Set Hot-end to 0C (off)\nM140 S0; Set bed to 0C (off)\n\nM400\nM18 X Y Z\n\nM73 P100 R0\n; EXECUTABLE_BLOCK_END\n;=====换盘结束=========`;
+    const ini_gcode = ";\n";
+    const model_settings_template = '<?xml version="1.0" encoding="UTF-8"?>\n<config>\n  <plate>\n    <metadata key="plater_id" value="1"/>\n    <metadata key="plater_name" value="SWAP"/>\n    <metadata key="locked" value="false"/>\n    <metadata key="gcode_file" value="Metadata/plate_1.gcode"/>\n    <metadata key="thumbnail_file" value="Metadata/plate_1.png"/>\n    <metadata key="top_file" value="Metadata/top_1.png"/>\n    <metadata key="pick_file" value="Metadata/pick_1.png"/>\n    <metadata key="pattern_bbox_file" value="Metadata/plate_1.json"/>\n  </plate>\n</config> ';
+    var enable_md5 = true, instant_processing = false, last_file = false;
+
+    function initialize_page() {
+        fileInput = document.getElementById('file');
+        li_prototype = document.getElementById('list_item_prototype');
+        playlist_ol = document.getElementById('playlist_ol');
+        err = document.getElementById('err');
+        p_scale = document.getElementById('progress_scale');
+        update_progress(-1);
+        const dropZone = document.getElementById('drop_zone');
+        const dropInstant = document.getElementById('drop_zone_instant');
+        ['dragend','dragleave','drop'].forEach(ev => {
+            dropZone.addEventListener(ev, dragOutHandler);
+            dropInstant.addEventListener(ev, dragOutHandler);
+        });
+        dropZone.addEventListener('dragover', (e) => dragOverHandler(e, e.target));
+        [...dropZone.children].forEach(c => c.addEventListener('dragover', (e) => dragOverHandler(e, dropZone)));
+        dropInstant.addEventListener('dragover', (e) => dragOverHandler(e, e.target));
+        [...dropInstant.children].forEach(c => c.addEventListener('dragover', (e) => dragOverHandler(e, dropInstant)));
+        dropInstant.addEventListener('drop', (e) => dropHandler(e, true));
+        dropZone.addEventListener('drop', (e) => dropHandler(e, false));
+        dropZone.addEventListener('click', () => { fileInput.click(); instant_processing = false; });
+        fileInput.addEventListener('change', function(e) {
+            var files = e.target.files;
+            for (var i = 0; i < files.length; i++) {
+                last_file = (i + 1 === files.length);
+                handleFile(files[i]);
+            }
+        });
+    }
+
+    function dropHandler(e, instant) {
+        e.preventDefault();
+        document.querySelectorAll('.drop_zone_active').forEach(el => el.classList.remove('drop_zone_active'));
+        instant_processing = instant;
+        if (e.dataTransfer.items) {
+            [...e.dataTransfer.items].forEach((item, idx) => {
+                if (item.kind === 'file') {
+                    var f = item.getAsFile();
+                    last_file = (idx + 1 === e.dataTransfer.items.length);
+                    handleFile(f);
+                }
+            });
+        } else {
+            [...e.dataTransfer.files].forEach((f, idx) => {
+                last_file = (idx + 1 === e.dataTransfer.files.length);
+                handleFile(f);
+            });
+        }
+    }
+
+    function dragOverHandler(e, target) {
+        target.classList.add('drop_zone_active');
+        e.preventDefault();
+    }
+
+    function dragOutHandler(e) {
+        e.target.classList.remove('drop_zone_active');
+        e.preventDefault();
+    }
+
+    function update_progress(p) {
+        if (p < 0) {
+            p_scale.style.width = '0%';
+            p_scale.parentElement.style.opacity = 0;
+        } else {
+            p_scale.parentElement.style.opacity = 1;
+            p_scale.style.width = p + '%';
+        }
+    }
+
+    window.addEventListener('DOMContentLoaded', initialize_page);
+
+    const err_default = "请使用 *.3mf 或 *.gcode.3mf 切片文件。";
+
+    function reject_file(msg) { alert(msg); my_files.pop(); }
+
+    function adj_field_length(el, min, max) {
+        var val = el.value || el.placeholder;
+        el.style.width = Math.min(max, Math.max(min, val.length + 2)) + 'ch';
+    }
+
+    function custom_file_name(el) { if (!el.value) { el.value = el.placeholder; el.select(); } }
+
+    async function handleFile(file) {
+        var idx = my_files.length;
+        var fileNameInput = document.getElementById('file_name');
+        if (idx === 0) fileNameInput.placeholder = file.name.split('.gcode.').join('.').split('.3mf')[0] || 'output';
+        adj_field_length(fileNameInput, 5, 26);
+        my_files.push(file);
+        try {
+            var zip = await JSZip.loadAsync(file);
+            var configText = await zip.file("Metadata/model_settings.config").async("text");
+            var configXml = parser.parseFromString(configText, "text/xml");
+            var plates = configXml.getElementsByTagName("plate");
+            if (!plates.length || !plates[0].querySelectorAll("[key='gcode_file']").length) {
+                reject_file(err_default);
+                return;
+            }
+            document.getElementById('drop_zones_wrapper').classList.add('mini_drop_zone');
+            document.getElementById('action_buttons').classList.remove('hidden');
+            document.getElementById('statistics').classList.remove('hidden');
+
+            var sliceInfoText = await zip.file("Metadata/slice_info.config").async("text");
+            var sliceXml = parser.parseFromString(sliceInfoText, "text/xml");
+
+            for (var p = 0; p < plates.length; p++) {
+                (function(plateNode) {
+                    var gcodeFile = plateNode.querySelectorAll("[key='gcode_file']")[0].getAttribute("value");
+                    if (!gcodeFile) return;
+                    var gcodeEntry = zip.file(gcodeFile);
+                    if (!gcodeEntry) return;
+                    var li = li_prototype.cloneNode(true);
+                    li.removeAttribute('id');
+                    li.style.display = 'flex';
+                    playlist_ol.appendChild(li);
+                    var fName = li.querySelector('.f_name');
+                    var pName = li.querySelector('.p_name');
+                    var icon = li.querySelector('.p_icon');
+                    var fId = li.querySelector('.f_id');
+                    var pTime = li.querySelector('.p_time');
+                    var filamentsContainer = li.querySelector('.p_filaments');
+                    var protoFil = li.querySelector('.p_filament_prototype');
+                    filamentsContainer.innerHTML = '';
+                    fName.textContent = file.name;
+                    fName.title = file.name;
+                    pName.textContent = gcodeFile.replace(/Metadata\//g, '').replace(/\.gcode/g, '');
+                    pName.title = gcodeFile;
+                    fId.title = idx;
+                    fId.innerText = '[' + idx + ']';
+                    var thumbName = plateNode.querySelectorAll("[key='thumbnail_file']")[0].getAttribute("value");
+                    var thumbFile = zip.file(thumbName);
+                    if (thumbFile) {
+                        thumbFile.async('blob').then(blob => { icon.src = URL.createObjectURL(blob); });
+                    }
+                    var indexKey = "[key='index'][value='" + (p + 1) + "']";
+                    var plateSlice = sliceXml.querySelectorAll(indexKey);
+                    var plateSliceNode = plateSlice.length ? plateSlice[0].parentElement : sliceXml.getElementsByTagName("plate")[0];
+                    var filaments = plateSliceNode.getElementsByTagName("filament");
+                    for (var f = 0; f < filaments.length; f++) {
+                        var clone = protoFil.cloneNode(true);
+                        clone.style.display = 'flex';
+                        filamentsContainer.appendChild(clone);
+                        clone.querySelector('.f_color').style.backgroundColor = filaments[f].getAttribute('color');
+                        clone.querySelector('.f_slot').innerText = filaments[f].getAttribute('id');
+                        clone.querySelector('.f_type').innerText = filaments[f].getAttribute('type');
+                        clone.querySelector('.f_used_m').innerText = filaments[f].getAttribute('used_m');
+                        clone.querySelector('.f_used_g').innerText = filaments[f].getAttribute('used_g');
+                        clone.className = 'p_filament';
+                    }
+                    gcodeEntry.async('string').then(async (gcodeStr) => {
+                        var timeLabel = "total estimated time: ";
+                        var start = gcodeStr.indexOf(timeLabel) + timeLabel.length;
+                        var end = gcodeStr.indexOf("\n", start);
+                        var timeStr = gcodeStr.substring(start, end);
+                        pTime.innerText = timeStr;
+                        var seconds = 0;
+                        var match = timeStr.match(/(\d+)\s*s/);
+                        if (match) seconds += parseInt(match[1]);
+                        match = timeStr.match(/(\d+)\s*m/);
+                        if (match) seconds += parseInt(match[1]) * 60;
+                        match = timeStr.match(/(\d+)\s*h/);
+                        if (match) seconds += parseInt(match[1]) * 3600;
+                        match = timeStr.match(/(\d+)\s*d/);
+                        if (match) seconds += parseInt(match[1]) * 86400;
+                        pTime.title = seconds;
+                        update_statistics();
+                    });
+                })(plates[p]);
+            }
+
+            var allFilaments = sliceXml.getElementsByTagName("filament");
+            var maxId = 0;
+            for (var i = 0; i < allFilaments.length; i++) {
+                var id = parseInt(allFilaments[i].id);
+                if (id > maxId) maxId = id;
+            }
+            ams_max_file_id = maxId;
+
+            if (last_file) {
+                makeListSortable(playlist_ol);
+                if (instant_processing) export_3mf();
+            }
+        } catch (e) {
+            reject_file("文件解析失败: " + e.message);
+        }
+    }
+
+    async function export_3mf() {
+        update_progress(5);
+        var items = playlist_ol.getElementsByTagName('li');
+        var gcodeList = [];
+        var step = 15 / (items.length || 1);
+        for (var i = 0; i < items.length; i++) {
+            var fileId = items[i].querySelector('.f_id').title;
+            var plateName = items[i].querySelector('.p_name').title;
+            var repeats = parseInt(items[i].querySelector('.p_rep').value) || 0;
+            if (repeats > 0) {
+                var zip = await JSZip.loadAsync(my_files[fileId]);
+                var gcode = await zip.file(plateName).async('text');
+                for (var r = 0; r < repeats; r++) gcodeList.push(gcode);
+            }
+            update_progress(5 + (i + 1) * step);
+        }
+        if (!gcodeList.length) { alert('队列为空'); return; }
+        var firstZip = await JSZip.loadAsync(my_files[0]);
+        var plateFiles = await firstZip.file(/plate_\d+\.gcode\b$/);
+        for (var pf of plateFiles) await firstZip.remove(pf.name);
+        await firstZip.remove("Metadata/custom_gcode_per_layer.xml");
+
+        var projConfig = await (await JSZip.loadAsync(my_files[ams_max_file_id] || my_files[0])).file("Metadata/project_settings.config").async("text");
+        firstZip.file("Metadata/project_settings.config", projConfig);
+        firstZip.file("Metadata/model_settings.config", model_settings_template);
+
+        var sliceInfo = await firstZip.file("Metadata/slice_info.config").async("text");
+        var sliceDoc = parser.parseFromString(sliceInfo, "text/xml");
+        var plates = sliceDoc.getElementsByTagName("plate");
+        while (plates.length > 1) plates[plates.length - 1].remove();
+        var indexNode = plates[0].querySelectorAll("[key='index']")[0];
+        if (indexNode) indexNode.setAttribute("value", "1");
+        while (plates[0].getElementsByTagName("filament").length > 0) {
+            plates[0].getElementsByTagName("filament")[0].remove();
+        }
+        var filamentTotal = document.getElementById('filament_total').childNodes;
+        var fiArr = [];
+        for (var fn = 0; fn < filamentTotal.length; fn++) {
+            if (filamentTotal[fn].nodeType === 1) fiArr.push(filamentTotal[fn]);
+        }
+        for (var fi = 0; fi < fiArr.length; fi++) {
+            var newFil = sliceDoc.createElement("filament");
+            plates[0].appendChild(newFil);
+            newFil.id = fiArr[fi].title || (fi + 1);
+            newFil.setAttribute("used_m", "0");
+            newFil.setAttribute("used_g", "0");
+        }
+        var sliceXmlStr = new XMLSerializer().serializeToString(sliceDoc);
+        firstZip.file("Metadata/slice_info.config", sliceXmlStr);
+
+        var typeSelect = document.querySelector('#type');
+        var swapGcode = typeSelect.value === 'A2L' ? swap_gcode_A2L : swap_gcode_a1;
+        for (var gi = 0; gi < gcodeList.length; gi++) gcodeList[gi] += swapGcode;
+
+        var loops = parseInt(document.getElementById('loops').value) || 1;
+        var finalGcodes = [];
+        for (var l = 0; l < loops; l++) finalGcodes = finalGcodes.concat(gcodeList);
+        if (finalGcodes.length) finalGcodes[0] = ini_gcode + finalGcodes[0];
+
+        var flagStr = "\nM620 S";
+        var flagIdx = [],
+            flagPlate = [],
+            flagVal = [];
+        for (var idx = 0; idx < finalGcodes.length; idx++) {
+            var pos = finalGcodes[idx].indexOf(flagStr);
+            while (pos !== -1) {
+                flagIdx.push(pos + 1);
+                flagPlate.push(idx);
+                var val = finalGcodes[idx].substring(pos + 7, pos + 10);
+                if (val[2] === '\n' || val[2] === ' ') val = val.substring(0, 2);
+                flagVal.push(val);
+                pos = finalGcodes[idx].indexOf(flagStr, pos + 1);
+            }
+        }
+        for (var fi2 = 0; fi2 < flagVal.length - 1; fi2++) {
+            if (flagVal[fi2] == 255 && flagVal[fi2 - 1] == flagVal[fi2 + 1]) {
+                finalGcodes[flagPlate[fi2]] = disable_gcode_line(finalGcodes[flagPlate[fi2]], flagIdx[fi2]);
+                finalGcodes[flagPlate[fi2 + 1]] = disable_gcode_block(finalGcodes[flagPlate[fi2 + 1]], flagIdx[fi2 + 1]);
+            }
+        }
+
+        var blob = new Blob(finalGcodes, { type: 'text/x-gcode' });
+        firstZip.file("Metadata/plate_1.gcode", blob);
+        update_progress(25);
+        await chunked_md5(enable_md5 ? blob : new Blob([" "]), function(hash) {
+            firstZip.file("Metadata/plate_1.gcode.md5", hash);
+            firstZip.generateAsync({ type: "blob", compression: "DEFLATE", compressionOptions: { level: 3 } }, function(meta) {
+                update_progress(75 + 0.2 * meta.percent.toFixed());
+            }).then(function(outBlob) {
+                var nameInput = document.getElementById('file_name');
+                var baseName = nameInput.value || nameInput.placeholder || 'output';
+                download(baseName + '.swap.3mf', URL.createObjectURL(outBlob));
+                update_progress(100);
+                setTimeout(() => update_progress(-1), 1000);
+            });
+        });
+    }
+
+    function disable_gcode_line(str, pos) { if (pos >= str.length) return str; return str.substring(0, pos) + ';' + str.substring(pos + 1); }
+
+    function disable_gcode_block(str, pos) {
+        if (pos >= str.length) return str;
+        var end = str.substring(pos).search(/\n[^\s]/);
+        var comment = ";SWAP - AMS block removed";
+        while (comment.length < end - 1) comment += "/";
+        return str.substring(0, pos) + comment + "\n" + str.substring(pos + end);
+    }
+
+    function chunked_md5(blob, callback) {
+        var slice = File.prototype.slice || File.prototype.mozSlice || File.prototype.webkitSlice;
+        var chunkSize = 2097152;
+        var chunks = Math.ceil(blob.size / chunkSize);
+        var current = 0;
+        var spark = new SparkMD5.ArrayBuffer();
+        var reader = new FileReader();
+
+        function loadNext() {
+            var start = current * chunkSize;
+            var end = start + chunkSize >= blob.size ? blob.size : start + chunkSize;
+            reader.readAsArrayBuffer(slice.call(blob, start, end));
+        }
+        reader.onload = function(e) {
+            spark.append(e.target.result);
+            update_progress(25 + 50 / chunks * ++current);
+            if (current < chunks) loadNext();
+            else callback(spark.end());
+        };
+        reader.onerror = function() { console.warn('MD5 read error'); };
+        loadNext();
+    }
+
+    function download(filename, url) {
+        var a = document.createElement('a');
+        a.href = url;
+        a.download = filename;
+        a.style.display = 'none';
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+    }
+
+    function update_statistics() {
+        update_filament_usage();
+        update_total_time();
+    }
+
+    function update_filament_usage() {
+        var usedM = [],
+            usedG = [],
+            maxSlot = -1;
+        var container = document.getElementById('filament_total');
+        var filElements = playlist_ol.getElementsByClassName('p_filament');
+        for (var f = 0; f < filElements.length; f++) {
+            var slot = parseInt(filElements[f].querySelector('.f_slot').innerText) - 1;
+            var repeats = parseInt(filElements[f].parentElement.parentElement.querySelector('.p_rep').value) || 0;
+            var m = parseFloat(filElements[f].querySelector('.f_used_m').innerText) || 0;
+            var g = parseFloat(filElements[f].querySelector('.f_used_g').innerText) || 0;
+            if (!usedM[slot]) usedM[slot] = 0;
+            if (!usedG[slot]) usedG[slot] = 0;
+            usedM[slot] += m * repeats;
+            usedG[slot] += g * repeats;
+            if (repeats > 0 && slot > maxSlot) maxSlot = slot;
+        }
+        var loops = parseInt(document.getElementById('loops').value) || 1;
+        usedM = usedM.map(v => v * loops);
+        usedG = usedG.map(v => v * loops);
+        container.innerHTML = '';
+        for (var i = 0; i < usedM.length; i++) {
+            if (usedM[i] || usedG[i]) {
+                var div = document.createElement('div');
+                div.innerHTML = '槽 ' + (i + 1) + ': <br>' + Math.round(usedM[i] * 100) / 100 + 'm <br> ' + Math.round(usedG[i] * 100) / 100 + 'g';
+                div.title = i + 1;
+                container.appendChild(div);
+            }
+        }
+    }
+
+    function update_total_time() {
+        var totalTime = document.getElementById('total_time');
+        var loops = parseInt(document.getElementById('loops').value) || 1;
+        var usedPlates = document.getElementById('used_plates');
+        var totalSec = 0,
+            plateCount = 0;
+        var items = playlist_ol.getElementsByTagName('li');
+        for (var i = 0; i < items.length; i++) {
+            var rep = parseInt(items[i].querySelector('.p_rep').value) || 0;
+            if (rep > 0) {
+                var t = parseFloat(items[i].querySelector('.p_time').title) || 0;
+                totalSec += t * rep;
+                plateCount += rep;
+                items[i].classList.remove('inactive');
+            } else {
+                items[i].classList.add('inactive');
+            }
+        }
+        totalSec *= loops;
+        plateCount *= loops;
+        totalTime.innerText = totalSec.toDHMS ? totalSec.toDHMS() : totalSec + 's';
+        usedPlates.innerText = plateCount;
+    }
+
+    function makeListSortable(list) {
+        list.classList.add('slist');
+        let items = list.getElementsByTagName('li');
+        let dragged = null;
+        for (let li of items) {
+            li.draggable = true;
+            li.ondragstart = (e) => {
+                dragged = li;
+                li.classList.add('targeted');
+                for (let other of items)
+                    if (other !== li) other.classList.add('hint');
+            };
+            li.ondragenter = () => { if (li !== dragged) li.classList.add('active'); };
+            li.ondragleave = () => { li.classList.remove('active'); };
+            li.ondragend = () => {
+                for (let el of items) el.classList.remove('hint', 'active', 'targeted');
+            };
+            li.ondragover = e => e.preventDefault();
+            li.ondrop = (e) => {
+                e.preventDefault();
+                if (li === dragged) return;
+                let fromIdx = 0,
+                    toIdx = 0;
+                for (let i = 0; i < items.length; i++) {
+                    if (dragged === items[i]) fromIdx = i;
+                    if (li === items[i]) toIdx = i;
+                }
+                if (fromIdx < toIdx) li.parentNode.insertBefore(dragged, li.nextSibling);
+                else li.parentNode.insertBefore(dragged, li);
+            };
+        }
+    }
+
+    Number.prototype.toDHMS = function() {
+        var sec = Math.floor(this);
+        var d = Math.floor(sec / 86400);
+        var h = Math.floor((sec - d * 86400) / 3600);
+        var m = Math.floor((sec - d * 86400 - h * 3600) / 60);
+        var s = sec - d * 86400 - h * 3600 - m * 60;
+        return (d ? d + 'd ' : '') + (h ? h + 'h ' : '') + m + 'm ' + s + 's';
+    };
+
+    window.export_3mf = export_3mf;
+    window.custom_file_name = custom_file_name;
+    window.adj_field_length = adj_field_length;
+    window.update_statistics = update_statistics;
+</script>
+</body>
+</html>
